@@ -1,0 +1,118 @@
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
+import { auth } from '../middlewares/auth.js';
+
+const router = express.Router();
+
+
+const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 24 * 60 * 60 * 1000
+};
+
+
+router.post('/register', async (req, res) => {
+    try {
+        const { name, email, password, role } = req.body;
+
+
+        let user = await User.findOne({ email });
+        if (user) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+
+
+        user = new User({ name, email, password, role });
+        await user.save();
+
+
+        const payload = { id: user.id };
+        const token = jwt.sign(payload, process.env.JWT_SECRET || 'your_jwt_secret', {
+            expiresIn: '24h'
+        });
+
+
+        res.cookie('token', token, cookieOptions);
+
+        res.status(201).json({
+            message: 'User registered successfully',
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error("Registration Error:", error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+
+router.post('/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+
+        const isMatch = await user.correctPassword(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+
+        const payload = { id: user.id };
+        const token = jwt.sign(payload, process.env.JWT_SECRET || 'your_jwt_secret', {
+            expiresIn: '24h'
+        });
+
+
+        res.cookie('token', token, cookieOptions);
+
+        res.json({
+            message: 'Login successful',
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+
+router.post('/logout', (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+    });
+
+    res.json({ message: 'Logout successful' });
+});
+
+
+router.get('/me', auth, async (req, res) => {
+    res.json({
+        user: {
+            id: req.user.id,
+            name: req.user.name,
+            email: req.user.email,
+            role: req.user.role
+        }
+    });
+});
+
+export default router;
