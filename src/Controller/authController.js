@@ -1,10 +1,5 @@
-import express from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import { auth } from '../middlewares/auth.js';
-
-const router = express.Router();
-
 
 const cookieOptions = {
     httpOnly: true,
@@ -13,8 +8,7 @@ const cookieOptions = {
     maxAge: 24 * 60 * 60 * 1000
 };
 
-
-router.post('/register', async (req, res) => {
+export const register = async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
 
@@ -39,7 +33,6 @@ router.post('/register', async (req, res) => {
 
         res.status(201).json({
             message: 'User registered successfully',
-            token, // Return token for client-side storage
             user: {
                 id: user.id,
                 name: user.name,
@@ -51,10 +44,9 @@ router.post('/register', async (req, res) => {
         console.error("Registration Error:", error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
-});
+};
 
-
-router.post('/login', async (req, res) => {
+export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -81,7 +73,6 @@ router.post('/login', async (req, res) => {
 
         res.json({
             message: 'Login successful',
-            token, // Return token for client-side storage
             user: {
                 id: user.id,
                 name: user.name,
@@ -92,10 +83,9 @@ router.post('/login', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
-});
+};
 
-
-router.post('/logout', (req, res) => {
+export const logout = (req, res) => {
     res.clearCookie('token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -103,10 +93,9 @@ router.post('/logout', (req, res) => {
     });
 
     res.json({ message: 'Logout successful' });
-});
+};
 
-
-router.get('/me', auth, async (req, res) => {
+export const getMe = async (req, res) => {
     res.json({
         user: {
             id: req.user.id,
@@ -115,6 +104,4 @@ router.get('/me', auth, async (req, res) => {
             role: req.user.role
         }
     });
-});
-
-export default router;
+};

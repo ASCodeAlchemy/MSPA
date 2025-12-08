@@ -1,14 +1,8 @@
-import express from 'express';
-import { auth, requireTeacher, requireStudent } from '../middlewares/auth.js';
-import { validateTest } from '../middlewares/validation.js';
 import Test from '../models/Test.js';
 import Question from '../models/Question.js';
 import Result from '../models/Result.js';
 
-const router = express.Router();
-
-
-router.post('/', auth, requireTeacher, validateTest, async (req, res) => {
+export const createTest = async (req, res) => {
     try {
         const test = new Test({
             ...req.body,
@@ -21,10 +15,9 @@ router.post('/', auth, requireTeacher, validateTest, async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
-});
+};
 
-
-router.get('/my-tests', auth, requireTeacher, async (req, res) => {
+export const getMyTests = async (req, res) => {
     try {
         const tests = await Test.find({ createdBy: req.user.id })
             .populate('questions')
@@ -34,10 +27,9 @@ router.get('/my-tests', auth, requireTeacher, async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
-});
+};
 
-
-router.get('/active', auth, requireStudent, async (req, res) => {
+export const getActiveTests = async (req, res) => {
     try {
         const tests = await Test.find({ isActive: true })
             .populate('createdBy', 'name')
@@ -47,10 +39,9 @@ router.get('/active', auth, requireStudent, async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
-});
+};
 
-
-router.get('/:id', auth, async (req, res) => {
+export const getTestById = async (req, res) => {
     try {
         const test = await Test.findById(req.params.id).populate('questions');
 
@@ -84,10 +75,9 @@ router.get('/:id', auth, async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
-});
+};
 
-
-router.post('/:id/start', auth, requireStudent, async (req, res) => {
+export const startTest = async (req, res) => {
     try {
         const test = await Test.findById(req.params.id);
 
@@ -102,19 +92,7 @@ router.post('/:id/start', auth, requireStudent, async (req, res) => {
         });
 
         if (existingResult) {
-            if (existingResult.submittedAt) {
-                return res.status(400).json({ message: 'Test already attempted' });
-            }
-
-            // Resume Test
-            return res.json({
-                testId: test._id,
-                duration: test.duration,
-                totalQuestions: test.questions.length,
-                totalMarks: existingResult.totalMarks,
-                startTime: existingResult.createdAt, // Use original start time
-                isResumed: true
-            });
+            return res.status(400).json({ message: 'Test already attempted' });
         }
 
 
@@ -138,15 +116,14 @@ router.post('/:id/start', auth, requireStudent, async (req, res) => {
             duration: test.duration,
             totalQuestions: test.questions.length,
             totalMarks,
-            startTime: result.createdAt
+            startTime: new Date()
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
-});
+};
 
-
-router.post('/:id/submit', auth, requireStudent, async (req, res) => {
+export const submitTest = async (req, res) => {
     try {
         const { answers, timeTaken, autoSubmitted = false } = req.body;
         const test = await Test.findById(req.params.id);
@@ -219,82 +196,59 @@ router.post('/:id/submit', auth, requireStudent, async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
-});
+};
 
-
-router.put('/:id', auth, requireTeacher, async (req, res) => {
+export const updateTest = async (req, res) => {
     try {
-        const test = await Test.findById(req.params.id);
-
-        if (!test) {
-            return res.status(404).json({ message: 'Test not found' });
-        }
-
-        // Check ownership
-        // Check ownership (if test has an owner)
-        if (test.createdBy && test.createdBy.toString() !== req.user.id) {
-            return res.status(403).json({ message: 'Not authorized to update this test' });
-        }
-
-        const updatedTest = await Test.findByIdAndUpdate(
-            req.params.id,
+        const test = await Test.findOneAndUpdate(
+            { _id: req.params.id, createdBy: req.user.id },
             req.body,
             { new: true, runValidators: true }
         ).populate('questions');
 
-        res.json(updatedTest);
+        if (!test) {
+            return res.status(404).json({ message: 'Test not found' });
+        }
+
+        res.json(test);
     } catch (error) {
-        console.error('Error in PUT /tests/:id:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
-});
+};
 
-
-router.delete('/:id', auth, requireTeacher, async (req, res) => {
+export const deleteTest = async (req, res) => {
     try {
-        const test = await Test.findById(req.params.id);
+        const test = await Test.findOneAndDelete({
+            _id: req.params.id,
+            createdBy: req.user.id
+        });
 
         if (!test) {
             return res.status(404).json({ message: 'Test not found' });
         }
 
-        // Check ownership
-        // Check ownership (if test has an owner)
-        if (test.createdBy && test.createdBy.toString() !== req.user.id) {
-            return res.status(403).json({ message: 'Not authorized to delete this test' });
-        }
 
-        await Test.findByIdAndDelete(req.params.id);
         await Result.deleteMany({ test: req.params.id });
 
         res.json({ message: 'Test deleted successfully' });
     } catch (error) {
-        console.error('Error in DELETE /tests/:id:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
-});
-
-router.put('/:id/publish', auth, requireTeacher, async (req, res) => {
+};
+export const publishTest = async (req, res) => {
     try {
-        const test = await Test.findById(req.params.id);
+        const test = await Test.findOneAndUpdate(
+            { _id: req.params.id, createdBy: req.user.id },
+            { isActive: true },
+            { new: true }
+        );
 
         if (!test) {
             return res.status(404).json({ message: 'Test not found' });
         }
 
-        // Check ownership
-        if (test.createdBy && test.createdBy.toString() !== req.user.id) {
-            return res.status(403).json({ message: 'Not authorized to publish this test' });
-        }
-
-        test.isActive = true;
-        await test.save();
-
         res.json({ message: 'Test published successfully', test });
     } catch (error) {
-        console.error('Error in PUT /tests/:id/publish:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
-});
-
-export default router;
+};

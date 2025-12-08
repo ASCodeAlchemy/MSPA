@@ -18,20 +18,14 @@ const testSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    isActive: {
+        type: Boolean,
+        default: false
+    },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
-    },
-    isActive: {
-        type: Boolean,
-        default: true
-    },
-    startTime: {
-        type: Date
-    },
-    endTime: {
-        type: Date
     },
     createdAt: {
         type: Date,

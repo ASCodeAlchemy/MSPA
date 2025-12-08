@@ -14,10 +14,13 @@ export const AuthProvider = ({ children }) => {
     const checkUser = async () => {
         try {
             // Assuming there's an endpoint to get current user, if not we might need to rely on local storage or add one
-            // For now, let's assume we store user in localStorage on login
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
+            // Check sessionStorage
+            const storedUser = sessionStorage.getItem('user');
+            const token = sessionStorage.getItem('token');
+
+            if (storedUser && token) {
                 setUser(JSON.parse(storedUser));
+                api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             }
         } catch (error) {
             console.error(error);
@@ -28,8 +31,16 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         const res = await api.post('/auth/login', { email, password });
-        setUser(res.data.user); // Assuming backend returns { user: ... }
-        localStorage.setItem('user', JSON.stringify(res.data.user));
+        setUser(res.data.user);
+
+        // Store token in sessionStorage for per-tab isolation
+        if (res.data.token) {
+            sessionStorage.setItem('token', res.data.token);
+            sessionStorage.setItem('user', JSON.stringify(res.data.user));
+            // Set header for subsequent requests
+            api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        }
+
         return res.data;
     };
 
@@ -39,9 +50,15 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = async () => {
-        await api.post('/auth/logout');
+        try {
+            await api.post('/auth/logout');
+        } catch (err) {
+            console.error(err);
+        }
         setUser(null);
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        delete api.defaults.headers.common['Authorization'];
     };
 
     return (

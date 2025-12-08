@@ -51,7 +51,12 @@ export default function TeacherDashboard() {
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {tests.map(test => (
                         <div key={test._id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                            <h3 className="text-xl font-semibold mb-2 text-gray-800">{test.title}</h3>
+                            <div className="flex justify-between items-start mb-2">
+                                <h3 className="text-xl font-semibold text-gray-800">{test.title}</h3>
+                                <span className={`px-2 py-1 text-xs rounded-full ${test.isActive ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                    {test.isActive ? 'Published' : 'Draft'}
+                                </span>
+                            </div>
                             <p className="text-gray-500 mb-4 text-sm">{test.description || 'No description'}</p>
                             <div className="flex justify-between items-center text-sm text-gray-500 mb-4">
                                 <span>{test.questions.length} Questions</span>

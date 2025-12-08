@@ -6,6 +6,7 @@ import CreateTest from './pages/CreateTest';
 import AddQuestions from './pages/AddQuestions';
 import StudentDashboard from './pages/StudentDashboard';
 import TakeTest from './pages/TakeTest';
+import TestResults from './pages/TestResults';
 import { useAuth } from './context/AuthContext';
 
 const PrivateRoute = ({ children, role }) => {
@@ -42,6 +43,11 @@ function App() {
       <Route path="/test/:testId/questions" element={
         <PrivateRoute role="teacher">
           <AddQuestions />
+        </PrivateRoute>
+      } />
+      <Route path="/test/:testId/results" element={
+        <PrivateRoute role="teacher">
+          <TestResults />
         </PrivateRoute>
       } />
 

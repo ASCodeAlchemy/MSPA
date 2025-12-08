@@ -90,7 +90,29 @@ export default function AddQuestions() {
             <div className="max-w-4xl mx-auto">
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-800">Add Questions to: {test?.title}</h1>
-                    <button onClick={() => navigate('/teacher')} className="text-blue-600 hover:underline">Back to Dashboard</button>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => navigate('/teacher')}
+                            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                        >
+                            Save Draft
+                        </button>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    await api.put(`/tests/${testId}/publish`);
+                                    alert('Test published successfully!');
+                                    navigate('/teacher');
+                                } catch (error) {
+                                    console.error(error);
+                                    alert('Failed to publish test');
+                                }
+                            }}
+                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                        >
+                            Publish Test
+                        </button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

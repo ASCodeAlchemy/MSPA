@@ -38,6 +38,9 @@ const resultSchema = new mongoose.Schema({
         default: 0
     },
     submittedAt: {
+        type: Date
+    },
+    createdAt: {
         type: Date,
         default: Date.now
     },

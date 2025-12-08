@@ -11,6 +11,8 @@ export default function TakeTest() {
     const [timeLeft, setTimeLeft] = useState(0);
     const [warnings, setWarnings] = useState(0);
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     // Proctoring refs
     const hasStarted = useRef(false);
 
@@ -63,13 +65,28 @@ export default function TakeTest() {
             // Fetch full test details (questions)
             const testRes = await api.get(`/tests/${testId}`);
             setTest(testRes.data);
-            setTimeLeft(testRes.data.duration * 60);
+
+            // Calculate time left
+            const startTime = new Date(res.data.startTime);
+            const now = new Date();
+            const elapsedSeconds = Math.floor((now - startTime) / 1000);
+            const totalDurationSeconds = testRes.data.duration * 60;
+            const remaining = totalDurationSeconds - elapsedSeconds;
+
+            if (remaining <= 0) {
+                // Time already up, auto submit
+                setTimeLeft(0);
+                submitTest(true);
+            } else {
+                setTimeLeft(remaining);
+            }
+
             hasStarted.current = true;
             setLoading(false);
         } catch (error) {
             console.error(error);
             if (error.response?.status === 400) {
-                alert('You have already attempted this test.');
+                alert('You have already attempted or submitted this test.');
                 navigate('/student');
             } else {
                 alert('Failed to start test');
@@ -87,16 +104,23 @@ export default function TakeTest() {
     };
 
     const submitTest = async (autoSubmitted = false) => {
+        if (isSubmitting) return; // Prevent double submit
+        setIsSubmitting(true);
         hasStarted.current = false; // Stop proctoring
+
         try {
             const formattedAnswers = Object.entries(answers).map(([qId, ans]) => ({
                 questionId: qId,
                 ...ans
             }));
 
+            // Use test.duration if test is available, else fallback logic needed but test should be there
+            const totalTime = test ? test.duration * 60 : 0;
+            const timeTaken = Math.max(0, totalTime - timeLeft);
+
             await api.post(`/tests/${testId}/submit`, {
                 answers: formattedAnswers,
-                timeTaken: test.duration * 60 - timeLeft,
+                timeTaken,
                 autoSubmitted
             });
 
@@ -104,7 +128,9 @@ export default function TakeTest() {
             navigate('/student');
         } catch (error) {
             console.error(error);
-            alert('Failed to submit test');
+            const msg = error.response?.data?.message || 'Failed to submit test';
+            alert(msg);
+            setIsSubmitting(false); // Re-enable if failure (though navigate usually happens)
         }
     };
 
@@ -161,14 +187,15 @@ export default function TakeTest() {
 
                 <div className="mt-8 pt-6 border-t">
                     <button
+                        disabled={isSubmitting}
                         onClick={() => {
                             if (window.confirm('Are you sure you want to submit?')) {
                                 submitTest();
                             }
                         }}
-                        className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-md"
+                        className={`w-full text-white py-3 rounded-lg font-bold shadow-md ${isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
                     >
-                        Submit Test
+                        {isSubmitting ? 'Submitting...' : 'Submit Test'}
                     </button>
                 </div>
             </div>
