@@ -23,19 +23,30 @@ const userSchema = new mongoose.Schema({
         enum: ['teacher', 'student'],
         required: true
     },
+    teacherCode: {
+        type: String,
+        unique: true,
+        sparse: true,
+        minlength: 4,
+        maxlength: 4
+    },
+    enrolledTeachers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
     createdAt: {
         type: Date,
         default: Date.now
     }
 });
 
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
     this.password = await bcrypt.hash(this.password, 12);
     next();
 });
 
-userSchema.methods.correctPassword = async function(candidatePassword, userPassword) {
+userSchema.methods.correctPassword = async function (candidatePassword, userPassword) {
     return await bcrypt.compare(candidatePassword, userPassword);
 };
 

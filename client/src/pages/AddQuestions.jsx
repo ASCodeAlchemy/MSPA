@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
+import { useAuth } from '../context/AuthContext';
 
 export default function AddQuestions() {
     const { testId } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [test, setTest] = useState(null);
     const [questions, setQuestions] = useState([]);
 
@@ -92,7 +94,7 @@ export default function AddQuestions() {
                     <h1 className="text-3xl font-bold text-gray-800">Add Questions to: {test?.title}</h1>
                     <div className="flex gap-4">
                         <button
-                            onClick={() => navigate('/teacher')}
+                            onClick={() => navigate(`/teacher/dashboard/${user?.id}`)}
                             className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                         >
                             Save Draft
@@ -102,7 +104,7 @@ export default function AddQuestions() {
                                 try {
                                     await api.put(`/tests/${testId}/publish`);
                                     alert('Test published successfully!');
-                                    navigate('/teacher');
+                                    navigate(`/teacher/dashboard/${user?.id}`);
                                 } catch (error) {
                                     console.error(error);
                                     alert('Failed to publish test');

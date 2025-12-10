@@ -17,7 +17,7 @@ const PrivateRoute = ({ children, role }) => {
   if (!user) return <Navigate to="/login" />;
 
   if (role && user.role !== role) {
-    return <Navigate to={user.role === 'teacher' ? '/teacher' : '/student'} />;
+    return <Navigate to={user.role === 'teacher' ? `/teacher/dashboard/${user.id}` : `/student/dashboard/${user.id}`} />;
   }
 
   return children;
@@ -30,11 +30,14 @@ function App() {
       <Route path="/register" element={<Register />} />
 
       {/* Teacher Routes */}
-      <Route path="/teacher" element={
+      <Route path="/teacher/dashboard/:id" element={
         <PrivateRoute role="teacher">
           <TeacherDashboard />
         </PrivateRoute>
       } />
+      {/* Redirect old path for backward compatibility or direct access */}
+      <Route path="/teacher" element={<Navigate to="/login" />} />
+
       <Route path="/create-test" element={
         <PrivateRoute role="teacher">
           <CreateTest />
@@ -52,11 +55,13 @@ function App() {
       } />
 
       {/* Student Routes */}
-      <Route path="/student" element={
+      <Route path="/student/dashboard/:id" element={
         <PrivateRoute role="student">
           <StudentDashboard />
         </PrivateRoute>
       } />
+      {/* Redirect old path */}
+      <Route path="/student" element={<Navigate to="/login" />} />
       <Route path="/take-test/:testId" element={
         <PrivateRoute role="student">
           <TakeTest />

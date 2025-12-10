@@ -1,4 +1,15 @@
 import express from 'express';
+import {
+    createTest,
+    getMyTests,
+    getActiveTests, // Added
+    getTestById,
+    startTest,
+    submitTest,
+    updateTest,
+    deleteTest,
+    publishTest
+} from '../Controller/testController.js';
 import { auth, requireTeacher, requireStudent } from '../middlewares/auth.js';
 import { validateTest } from '../middlewares/validation.js';
 import Test from '../models/Test.js';
@@ -37,17 +48,8 @@ router.get('/my-tests', auth, requireTeacher, async (req, res) => {
 });
 
 
-router.get('/active', auth, requireStudent, async (req, res) => {
-    try {
-        const tests = await Test.find({ isActive: true })
-            .populate('createdBy', 'name')
-            .select('title description duration createdAt');
-
-        res.json(tests);
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-});
+// Route to get active tests (Visible to students only)
+router.get('/active', auth, requireStudent, getActiveTests);
 
 
 router.get('/:id', auth, async (req, res) => {

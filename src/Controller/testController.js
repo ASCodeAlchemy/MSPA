@@ -31,7 +31,25 @@ export const getMyTests = async (req, res) => {
 
 export const getActiveTests = async (req, res) => {
     try {
-        const tests = await Test.find({ isActive: true })
+        let query = { isActive: true };
+
+
+        // API is intended for students only. If not student, return empty.
+        if (req.user.role !== 'student') {
+            console.log("Non-student role accessing getActiveTests. Returning empty.");
+            return res.json([]);
+        }
+
+        console.log("Enrolled Teachers:", req.user.enrolledTeachers);
+        const enrolled = req.user.enrolledTeachers || [];
+
+        if (enrolled.length === 0) {
+            console.log("No enrolled teachers. Returning empty.");
+            return res.json([]);
+        }
+        query.createdBy = { $in: enrolled };
+
+        const tests = await Test.find(query)
             .populate('createdBy', 'name')
             .select('title description duration createdAt');
 
@@ -53,6 +71,12 @@ export const getTestById = async (req, res) => {
         if (req.user.role === 'student') {
             if (!test.isActive) {
                 return res.status(403).json({ message: 'Test is not active' });
+            }
+
+            // Check if student is enrolled with the test creator
+            const isEnrolled = req.user.enrolledTeachers.includes(test.createdBy._id || test.createdBy);
+            if (!isEnrolled) {
+                return res.status(403).json({ message: 'You must enroll with this teacher to view this test' });
             }
 
             const testWithoutAnswers = {
@@ -85,6 +109,13 @@ export const startTest = async (req, res) => {
             return res.status(404).json({ message: 'Test not found or inactive' });
         }
 
+        // Check enrollment for student
+        if (req.user.role === 'student') {
+            const isEnrolled = req.user.enrolledTeachers.includes(test.createdBy.toString());
+            if (!isEnrolled) {
+                return res.status(403).json({ message: 'You must enroll with this teacher to attempt this test' });
+            }
+        }
 
         const existingResult = await Result.findOne({
             test: test._id,

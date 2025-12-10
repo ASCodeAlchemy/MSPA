@@ -9,6 +9,7 @@ import questionRoutes from './routes/questions.js';
 
 import testRoutes from './routes/tests.js';
 import resultRoutes from './routes/results.js';
+import userRoutes from './routes/users.js';
 
 
 import 'dotenv/config';
@@ -36,6 +37,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/results', resultRoutes);
+app.use('/api/users', userRoutes);
 
 
 io.on('connection', (socket) => {

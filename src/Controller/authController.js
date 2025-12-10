@@ -19,7 +19,19 @@ export const register = async (req, res) => {
         }
 
 
-        user = new User({ name, email, password, role });
+        if (role === 'teacher') {
+            let isUnique = false;
+            let code;
+            while (!isUnique) {
+                code = Math.floor(1000 + Math.random() * 9000).toString();
+                const existingUser = await User.findOne({ teacherCode: code });
+                if (!existingUser) isUnique = true;
+            }
+            user = new User({ name, email, password, role, teacherCode: code });
+        } else {
+            user = new User({ name, email, password, role });
+        }
+
         await user.save();
 
 
@@ -33,11 +45,15 @@ export const register = async (req, res) => {
 
         res.status(201).json({
             message: 'User registered successfully',
+            token,
             user: {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+
+                role: user.role,
+                teacherCode: user.teacherCode,
+                enrolledTeachers: user.enrolledTeachers
             }
         });
     } catch (error) {
@@ -73,11 +89,14 @@ export const login = async (req, res) => {
 
         res.json({
             message: 'Login successful',
+            token,
             user: {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                teacherCode: user.teacherCode,
+                enrolledTeachers: user.enrolledTeachers
             }
         });
     } catch (error) {
@@ -101,7 +120,10 @@ export const getMe = async (req, res) => {
             id: req.user.id,
             name: req.user.name,
             email: req.user.email,
-            role: req.user.role
+
+            role: req.user.role,
+            teacherCode: req.user.teacherCode,
+            enrolledTeachers: req.user.enrolledTeachers
         }
     });
 };

@@ -13,17 +13,31 @@ export const AuthProvider = ({ children }) => {
 
     const checkUser = async () => {
         try {
-            // Assuming there's an endpoint to get current user, if not we might need to rely on local storage or add one
-            // Check sessionStorage
-            const storedUser = sessionStorage.getItem('user');
             const token = sessionStorage.getItem('token');
 
-            if (storedUser && token) {
-                setUser(JSON.parse(storedUser));
+            if (token) {
+                // Set header before fetching
                 api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+                // Fetch fresh user data
+                const res = await api.get('/auth/me');
+                const freshUser = res.data.user;
+
+                setUser(freshUser);
+                sessionStorage.setItem('user', JSON.stringify(freshUser));
+            } else {
+                // Fallback to purely stored user if offline or logic requires
+                const storedUser = sessionStorage.getItem('user');
+                if (storedUser) {
+                    setUser(JSON.parse(storedUser));
+                }
             }
         } catch (error) {
-            console.error(error);
+            console.error("Check user failed:", error);
+            // If token is invalid, clear session
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('user');
+            setUser(null);
         } finally {
             setLoading(false);
         }
@@ -62,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, register, logout, loading, refreshUser: checkUser }}>
             {children}
         </AuthContext.Provider>
     );
