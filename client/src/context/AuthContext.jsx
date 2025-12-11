@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
 
     const checkUser = async () => {
         try {
-            const token = sessionStorage.getItem('token');
+            const token = localStorage.getItem('token');
 
             if (token) {
                 // Set header before fetching
@@ -24,10 +24,10 @@ export const AuthProvider = ({ children }) => {
                 const freshUser = res.data.user;
 
                 setUser(freshUser);
-                sessionStorage.setItem('user', JSON.stringify(freshUser));
+                localStorage.setItem('user', JSON.stringify(freshUser));
             } else {
                 // Fallback to purely stored user if offline or logic requires
-                const storedUser = sessionStorage.getItem('user');
+                const storedUser = localStorage.getItem('user');
                 if (storedUser) {
                     setUser(JSON.parse(storedUser));
                 }
@@ -35,8 +35,9 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             console.error("Check user failed:", error);
             // If token is invalid, clear session
-            sessionStorage.removeItem('token');
-            sessionStorage.removeItem('user');
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
             setUser(null);
         } finally {
             setLoading(false);
@@ -47,12 +48,15 @@ export const AuthProvider = ({ children }) => {
         const res = await api.post('/auth/login', { email, password });
         setUser(res.data.user);
 
-        // Store token in sessionStorage for per-tab isolation
-        if (res.data.token) {
-            sessionStorage.setItem('token', res.data.token);
-            sessionStorage.setItem('user', JSON.stringify(res.data.user));
+        // Store token in localStorage
+        if (res.data.accessToken) {
+            localStorage.setItem('token', res.data.accessToken);
+            if (res.data.refreshToken) {
+                localStorage.setItem('refreshToken', res.data.refreshToken);
+            }
+            localStorage.setItem('user', JSON.stringify(res.data.user));
             // Set header for subsequent requests
-            api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+            api.defaults.headers.common['Authorization'] = `Bearer ${res.data.accessToken}`;
         }
 
         return res.data;
@@ -70,8 +74,10 @@ export const AuthProvider = ({ children }) => {
             console.error(err);
         }
         setUser(null);
-        sessionStorage.removeItem('user');
-        sessionStorage.removeItem('token');
+        setUser(null);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         delete api.defaults.headers.common['Authorization'];
     };
 

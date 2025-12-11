@@ -1,28 +1,19 @@
 import { useState } from 'react';
 import api from '../api';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function CreateTest() {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [duration, setDuration] = useState(30);
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await api.post('/tests', { title, description, duration, questions: [] }); // Initially empty questions
-            // But wait, the backend validation requires at least one question?
-            // Let's check validation.js: "if (!title || !duration || !questions || questions.length === 0)"
-            // Ah, I need to fix the backend validation to allow creating a test without questions initially, 
-            // OR I need to add questions in this flow.
-            // For simplicity, let's modify the backend validation to allow empty questions initially, 
-            // OR I can create a dummy question, but that's messy.
-            // BETTER PLAN: Update backend validation to allow empty questions array on creation.
-
-            // Wait, I can't easily update backend now without context switching.
-            // Let's assume I'll fix backend validation.
-
+            const res = await api.post('/tests', { title, description, duration, questions: [] });
             navigate(`/test/${res.data._id}/questions`);
         } catch (error) {
             console.error(error);
@@ -31,8 +22,14 @@ export default function CreateTest() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8 flex justify-center">
+        <div className="min-h-screen bg-gray-50 p-8 flex justify-center items-center">
             <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md h-fit">
+                <button
+                    onClick={() => navigate(`/teacher/dashboard/${user?.id}`)}
+                    className="mb-4 text-blue-600 hover:text-blue-800"
+                >
+                    &larr; Back to Dashboard
+                </button>
                 <h2 className="text-2xl font-bold mb-6">Create New Test</h2>
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">

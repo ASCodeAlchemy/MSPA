@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
+import { useAuth } from '../context/AuthContext';
 
 export default function TakeTest() {
     const { testId } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [test, setTest] = useState(null);
     const [answers, setAnswers] = useState({}); // { questionId: { selectedOption: index, textAnswer: string } }
     const [loading, setLoading] = useState(true);
@@ -87,7 +89,7 @@ export default function TakeTest() {
             console.error(error);
             if (error.response?.status === 400) {
                 alert('You have already attempted or submitted this test.');
-                navigate('/student');
+                navigate(`/student/dashboard/${user?.id}`);
             } else {
                 alert('Failed to start test');
             }
@@ -125,7 +127,7 @@ export default function TakeTest() {
             });
 
             alert(autoSubmitted ? 'Test auto-submitted.' : 'Test submitted successfully!');
-            navigate('/student');
+            navigate(`/student/dashboard/${user?.id}`);
         } catch (error) {
             console.error(error);
             const msg = error.response?.data?.message || 'Failed to submit test';

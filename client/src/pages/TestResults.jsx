@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api';
+import { useAuth } from '../context/AuthContext';
 
 export default function TestResults() {
     const { testId } = useParams();
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(true);
     const [testTitle, setTestTitle] = useState('');
+    const { user } = useAuth();
 
     useEffect(() => {
         fetchResults();
@@ -32,7 +34,7 @@ export default function TestResults() {
         <div className="min-h-screen bg-gray-50 p-8">
             <div className="max-w-6xl mx-auto">
                 <div className="mb-6">
-                    <Link to="/teacher" className="text-blue-600 hover:text-blue-800 mb-4 inline-block">&larr; Back to Dashboard</Link>
+                    <Link to={`/teacher/dashboard/${user?.id}`} className="text-blue-600 hover:text-blue-800 mb-4 inline-block">&larr; Back to Dashboard</Link>
                     <h1 className="text-3xl font-bold text-gray-800">Results: {testTitle || 'Test Results'}</h1>
                 </div>
 

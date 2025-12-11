@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -7,9 +7,19 @@ export default function Register() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('student');
-    const { register } = useAuth();
+    const { register, user } = useAuth();
     const navigate = useNavigate();
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (user) {
+            if (user.role === 'teacher') {
+                navigate(`/teacher/dashboard/${user.id}`);
+            } else {
+                navigate(`/student/dashboard/${user.id}`);
+            }
+        }
+    }, [user, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
